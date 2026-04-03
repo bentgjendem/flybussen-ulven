@@ -8,8 +8,8 @@ query GetTrips($from: String!, $to: String!, $dateTime: DateTime!) {
   trip(
     from: { place: $from }
     to: { place: $to }
-    numTripPatterns: 10
-    transportModes: [{ transportMode: bus }]
+    numTripPatterns: 12
+    modes: { transportModes: [{ transportMode: bus }] }
     dateTime: $dateTime
   ) {
     tripPatterns {
@@ -105,9 +105,19 @@ export async function GET(req: NextRequest) {
           }>;
         };
 
-        // Pick the first bus/coach leg as the primary leg
-        const leg = p.legs.find((l) => l.mode === "bus" || l.mode === "coach");
-        if (!leg) return null;
+        // Only show direct single-leg bus trips (Flybussen)
+        const busLegs = p.legs.filter((l) => l.mode === "bus" || l.mode === "coach");
+        if (busLegs.length !== 1) return null;
+        const leg = busLegs[0];
+
+        // Must be a direct trip — the bus leg itself goes all the way to the destination
+        // (i.e. no foot-transfer in the middle between two bus legs)
+        const footBetweenBuses = p.legs.some((l) => l.mode === "foot") && busLegs.length > 1;
+        if (footBetweenBuses) return null;
+
+        // Filter to actual Flybussen lines (publicCode starts with "FB")
+        const code = leg.line?.publicCode ?? "";
+        if (!code.toUpperCase().startsWith("FB")) return null;
 
         const aimedMs = new Date(leg.aimedStartTime).getTime();
         const expectedMs = new Date(leg.expectedStartTime).getTime();
