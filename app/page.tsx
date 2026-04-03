@@ -56,26 +56,27 @@ function BusRouteHeader({ direction, onSwap }: { direction: Direction; onSwap: (
   return (
     <div className="route-header" onClick={onSwap} title="Klikk for å bytte retning">
       <div className="stop">
-        <div className="stop-icon">{from.icon}</div>
         <div className="stop-code">{from.code}</div>
         <div className="stop-name">{from.name}</div>
       </div>
       <div className="route-middle">
-        <svg className="route-svg" viewBox="0 0 260 56" preserveAspectRatio="none">
-          <path d="M 16 44 Q 130 -4 244 44" fill="none"
-            stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeDasharray="6 5" />
-          <text fontSize="20" textAnchor="middle" fill="white"
-            style={{ filter: "drop-shadow(0 0 5px rgba(100,180,255,0.8))" }}>
+        <svg className="route-svg" viewBox="0 0 260 40" preserveAspectRatio="none">
+          {/* Road surface */}
+          <rect x="0" y="28" width="260" height="8" rx="2" fill="rgba(255,255,255,0.12)" />
+          {/* Dashed centre line */}
+          <line x1="0" y1="32" x2="260" y2="32"
+            stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" strokeDasharray="12 8" />
+          {/* Bus rolling along the road */}
+          <text fontSize="18" textAnchor="middle" fill="white"
+            style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,80,0.4))" }}>
             🚌
-            <animateMotion dur="6s" repeatCount="indefinite"
-              path="M 16 44 Q 130 -4 244 44" rotate="auto" />
+            <animateMotion dur="5s" repeatCount="indefinite" path="M 0 18 L 244 18" />
           </text>
         </svg>
         <div className="route-label">Flybussen</div>
         <div className="swap-hint">↕ klikk for å bytte retning</div>
       </div>
       <div className="stop">
-        <div className="stop-icon">{to.icon}</div>
         <div className="stop-code">{to.code}</div>
         <div className="stop-name">{to.name}</div>
       </div>
