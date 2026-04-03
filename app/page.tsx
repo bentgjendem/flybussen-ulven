@@ -2,34 +2,31 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { Departure } from "./api/departures/route";
+import type { MetroFlyJourney } from "./api/metro-fly/route";
 
-// ── Stop definitions ────────────────────────────────────────
-const ULVEN_TORG     = { id: "NSR:StopPlace:5920",  code: "ULV", name: "Ulven Torg",   icon: "🏙️" };
-const ULVENKRYSSET   = { id: "NSR:StopPlace:5919",  code: "ULV", name: "Ulvenkrysset", icon: "🏙️" };
-const OSL            = { id: "NSR:StopPlace:58211", code: "OSL", name: "Oslo Lufthavn", icon: "✈️" };
+// ── Stop definitions ─────────────────────────────────────────
+const ULVEN_TORG   = { id: "NSR:StopPlace:5920",  code: "ULV", name: "Ulven Torg",   icon: "🏙️" };
+const ULVENKRYSSET = { id: "NSR:StopPlace:5919",  code: "ULV", name: "Ulvenkrysset", icon: "🏙️" };
+const OSL          = { id: "NSR:StopPlace:58211", code: "OSL", name: "Oslo Lufthavn", icon: "✈️" };
 
 type Direction = "ulven-osl" | "osl-ulven";
 
-// How many trip patterns to request per stop (fetch more than we show to survive filtering)
-const FETCH_NUM = 8;
-// How many departures to show per stop group
-const SHOW_PER_STOP = 2;
-const REFRESH_INTERVAL = 60; // seconds
+const FETCH_NUM      = 8;
+const SHOW_PER_STOP  = 2;
+const SHOW_TRANSIT   = 2;
+const REFRESH_INTERVAL = 60;
 
 // ── Helpers ──────────────────────────────────────────────────
 function fmt(iso: string) {
   return new Date(iso).toLocaleTimeString("no-NO", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Oslo",
+    hour: "2-digit", minute: "2-digit", timeZone: "Europe/Oslo",
   });
 }
 
 function fmtDuration(seconds: number) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
-  if (h > 0) return `${h}t ${m} min`;
-  return `${m} min`;
+  return h > 0 ? `${h}t ${m} min` : `${m} min`;
 }
 
 function minutesUntil(iso: string) {
@@ -44,12 +41,18 @@ async function fetchGroup(fromId: string, toId: string): Promise<Departure[]> {
   return (data.departures ?? []) as Departure[];
 }
 
+async function fetchTransit(direction: Direction): Promise<MetroFlyJourney[]> {
+  const res = await fetch(`/api/metro-fly?direction=${direction}&num=${SHOW_TRANSIT}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return (data.journeys ?? []) as MetroFlyJourney[];
+}
+
 // ── Sub-components ────────────────────────────────────────────
 
 function BusRouteHeader({ direction, onSwap }: { direction: Direction; onSwap: () => void }) {
   const from = direction === "ulven-osl" ? ULVEN_TORG : OSL;
   const to   = direction === "ulven-osl" ? OSL : ULVEN_TORG;
-
   return (
     <div className="route-header" onClick={onSwap} title="Klikk for å bytte retning">
       <div className="stop">
@@ -57,16 +60,10 @@ function BusRouteHeader({ direction, onSwap }: { direction: Direction; onSwap: (
         <div className="stop-code">{from.code}</div>
         <div className="stop-name">{from.name}</div>
       </div>
-
       <div className="route-middle">
         <svg className="route-svg" viewBox="0 0 260 56" preserveAspectRatio="none">
-          <path
-            d="M 16 44 Q 130 -4 244 44"
-            fill="none"
-            stroke="rgba(255,255,255,0.25)"
-            strokeWidth="1.5"
-            strokeDasharray="6 5"
-          />
+          <path d="M 16 44 Q 130 -4 244 44" fill="none"
+            stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeDasharray="6 5" />
           <text fontSize="20" textAnchor="middle" fill="white"
             style={{ filter: "drop-shadow(0 0 5px rgba(100,180,255,0.8))" }}>
             🚌
@@ -77,7 +74,6 @@ function BusRouteHeader({ direction, onSwap }: { direction: Direction; onSwap: (
         <div className="route-label">Flybussen</div>
         <div className="swap-hint">↕ klikk for å bytte retning</div>
       </div>
-
       <div className="stop">
         <div className="stop-icon">{to.icon}</div>
         <div className="stop-code">{to.code}</div>
@@ -88,55 +84,38 @@ function BusRouteHeader({ direction, onSwap }: { direction: Direction; onSwap: (
 }
 
 function DepartureCard({ dep }: { dep: Departure }) {
-  const minsUntil = minutesUntil(dep.expectedDeparture);
+  const minsUntil  = minutesUntil(dep.expectedDeparture);
   const isDelayed  = dep.delayMinutes >= 2;
   const isDeparted = minsUntil < -1;
-
   return (
     <div className={`dep-card${isDeparted ? " departed" : ""}`}>
-      {/* Times */}
       <div className="dep-times">
         <div className="dep-time-block">
           {isDelayed && <div className="dep-time delayed">{fmt(dep.aimedDeparture)}</div>}
           <div className={`dep-time${isDelayed ? " expected" : ""}`}>{fmt(dep.expectedDeparture)}</div>
           <div className="dep-time-label">Avgang</div>
         </div>
-
         <div className="dep-arrow">
           <div className="dep-duration">{fmtDuration(dep.duration)}</div>
-          <div className="dep-arrow-line">
-            <hr />
-            <span className="dep-arrow-tip">▶</span>
-          </div>
+          <div className="dep-arrow-line"><hr /><span className="dep-arrow-tip">▶</span></div>
         </div>
-
         <div className="dep-time-block">
           {isDelayed && <div className="dep-time delayed">{fmt(dep.aimedArrival)}</div>}
           <div className={`dep-time${isDelayed ? " expected" : ""}`}>{fmt(dep.expectedArrival)}</div>
           <div className="dep-time-label">Ankomst</div>
         </div>
       </div>
-
-      {/* Meta */}
       <div className="dep-meta">
         <span className="dep-line">{dep.lineCode}</span>
-
-        {dep.fromQuay && (
-          <span className="dep-quay">🚏 Platform {dep.fromQuay}</span>
-        )}
-
+        {dep.fromQuay && <span className="dep-quay">🚏 Platform {dep.fromQuay}</span>}
         {isDelayed ? (
           <span className="dep-status delayed">+{dep.delayMinutes} min</span>
         ) : dep.realtime ? (
           <span className="dep-status on-time">I rute</span>
         ) : (
-          <span className="dep-status" style={{ color: "#6b7280", background: "#f3f4f6", border: "1px solid #e5e7eb" }}>
-            Rutetid
-          </span>
+          <span className="dep-status" style={{ color: "#6b7280", background: "#f3f4f6", border: "1px solid #e5e7eb" }}>Rutetid</span>
         )}
       </div>
-
-      {/* Countdown */}
       {!isDeparted && (
         <div className={`dep-countdown${minsUntil <= 5 ? " soon" : ""}`}>
           {minsUntil <= 0 ? "Avgår nå" : minsUntil === 1 ? "Om 1 minutt" : `Om ${minsUntil} minutter`}
@@ -146,16 +125,8 @@ function DepartureCard({ dep }: { dep: Departure }) {
   );
 }
 
-function StopGroup({
-  stopName,
-  departures,
-  loading,
-  error,
-}: {
-  stopName: string;
-  departures: Departure[];
-  loading: boolean;
-  error: string | null;
+function StopGroup({ stopName, departures, loading, error }: {
+  stopName: string; departures: Departure[]; loading: boolean; error: string | null;
 }) {
   return (
     <div className="stop-group">
@@ -163,28 +134,91 @@ function StopGroup({
         <span className="stop-group-pin">📍</span>
         <span className="stop-group-name">{stopName}</span>
       </div>
-
       {loading && departures.length === 0 && (
-        <div className="state-msg compact">
-          <span className="state-msg-icon">🚌</span> Henter…
-        </div>
+        <div className="state-msg compact"><span className="state-msg-icon">🚌</span> Henter…</div>
       )}
-
       {error && (
-        <div className="state-msg compact error">
-          <span className="state-msg-icon">⚠️</span> {error}
-        </div>
+        <div className="state-msg compact error"><span className="state-msg-icon">⚠️</span> {error}</div>
       )}
-
       {!loading && !error && departures.length === 0 && (
-        <div className="state-msg compact">
-          <span className="state-msg-icon">🔍</span> Ingen avganger funnet
-        </div>
+        <div className="state-msg compact"><span className="state-msg-icon">🔍</span> Ingen avganger funnet</div>
       )}
-
       {departures.slice(0, SHOW_PER_STOP).map((dep, i) => (
         <DepartureCard key={i} dep={dep} />
       ))}
+    </div>
+  );
+}
+
+function modeIcon(mode: string) {
+  if (mode === "metro") return "🚇";
+  if (mode === "rail")  return "🚄";
+  return "🚌";
+}
+
+function TransitCard({ journey }: { journey: MetroFlyJourney }) {
+  const { firstLeg, secondLeg, transferMinutes, totalDurationSeconds } = journey;
+  const minsUntil  = minutesUntil(firstLeg.expectedDeparture);
+  const isDeparted = minsUntil < -1;
+  const isFirstDelayed  = firstLeg.delayMinutes >= 2;
+  const isSecondDelayed = secondLeg.delayMinutes >= 2;
+
+  return (
+    <div className={`transit-card${isDeparted ? " departed" : ""}`}>
+      {/* Summary: total departure → arrival */}
+      <div className="transit-summary">
+        <div className="transit-time-block">
+          <div className="transit-time">{fmt(firstLeg.expectedDeparture)}</div>
+          <div className="transit-time-label">Avgang</div>
+        </div>
+        <div className="transit-arrow">
+          <div className="transit-duration">{fmtDuration(totalDurationSeconds)}</div>
+          <div className="transit-arrow-line"><hr /><span className="transit-arrow-tip">▶</span></div>
+        </div>
+        <div className="transit-time-block">
+          <div className="transit-time">{fmt(secondLeg.expectedArrival)}</div>
+          <div className="transit-time-label">Ankomst</div>
+        </div>
+      </div>
+
+      {/* Legs breakdown */}
+      <div className="transit-legs">
+        {/* First leg */}
+        <div className="transit-leg-row">
+          <span className="transit-leg-icon">{modeIcon(firstLeg.mode)}</span>
+          <span className="transit-leg-line">{firstLeg.lineCode}</span>
+          <span className="transit-leg-times">{fmt(firstLeg.expectedDeparture)}–{fmt(firstLeg.expectedArrival)}</span>
+          <span className="transit-leg-route">{firstLeg.toPlace}</span>
+          {isFirstDelayed && <span className="transit-leg-delayed">+{firstLeg.delayMinutes} min</span>}
+        </div>
+
+        {/* Transfer */}
+        <div className="transit-transfer-row">
+          <span className="transit-leg-icon">🚶</span>
+          <span>~{transferMinutes} min · Oslo S</span>
+        </div>
+
+        {/* Second leg */}
+        <div className="transit-leg-row">
+          <span className="transit-leg-icon">{modeIcon(secondLeg.mode)}</span>
+          <span className="transit-leg-line">{secondLeg.lineCode}</span>
+          <span className="transit-leg-times">{fmt(secondLeg.expectedDeparture)}–{fmt(secondLeg.expectedArrival)}</span>
+          <span className="transit-leg-route">{secondLeg.toPlace}</span>
+          {isSecondDelayed && <span className="transit-leg-delayed">+{secondLeg.delayMinutes} min</span>}
+        </div>
+      </div>
+
+      {/* Meta */}
+      <div className="transit-meta">
+        <span className={`dep-countdown${minsUntil <= 5 && !isDeparted ? " soon" : ""}`}>
+          {isDeparted ? "" : minsUntil <= 0 ? "Avgår nå" : minsUntil === 1 ? "Om 1 minutt" : `Om ${minsUntil} minutter`}
+        </span>
+        {(firstLeg.realtime || secondLeg.realtime) && (
+          <span className="dep-status on-time">
+            {isFirstDelayed || isSecondDelayed ? "Forsinket" : "I rute"}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -194,89 +228,92 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
       style={spinning ? { animation: "spin 1s linear infinite" } : {}}>
-      <path d="M23 4v6h-6" />
-      <path d="M1 20v-6h6" />
+      <path d="M23 4v6h-6" /><path d="M1 20v-6h6" />
       <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
     </svg>
   );
 }
 
-// ── Main page ────────────────────────────────────────────────
-type GroupState = { departures: Departure[]; loading: boolean; error: string | null };
+// ── State types ───────────────────────────────────────────────
+type GroupState   = { departures: Departure[];      loading: boolean; error: string | null };
+type TransitState = { journeys: MetroFlyJourney[];  loading: boolean; error: string | null };
 
-const emptyGroup = (): GroupState => ({ departures: [], loading: true, error: null });
+const emptyGroup   = (): GroupState   => ({ departures: [], loading: true,  error: null });
+const emptyTransit = (): TransitState => ({ journeys:   [], loading: true,  error: null });
 
+// ── Main page ─────────────────────────────────────────────────
 export default function Home() {
-  const [direction, setDirection]     = useState<Direction>("ulven-osl");
-  const [groupA, setGroupA]           = useState<GroupState>(emptyGroup());   // Ulven Torg  / OSL
-  const [groupB, setGroupB]           = useState<GroupState | null>(null);    // Ulvenkrysset (ulven-osl only)
-  const [fetchedAt, setFetchedAt]     = useState<string | null>(null);
-  const [countdown, setCountdown]     = useState(REFRESH_INTERVAL);
+  const [direction, setDirection] = useState<Direction>("ulven-osl");
+  const [groupA,    setGroupA]    = useState<GroupState>(emptyGroup());
+  const [groupB,    setGroupB]    = useState<GroupState | null>(null);
+  const [transit,   setTransit]   = useState<TransitState>(emptyTransit());
+  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
 
-  const isLoading = groupA.loading || (groupB?.loading ?? false);
+  const isLoading = groupA.loading || (groupB?.loading ?? false) || transit.loading;
 
   const fetchAll = useCallback(async () => {
     if (direction === "ulven-osl") {
-      // Two parallel fetches — one per Ulven stop
       setGroupA(emptyGroup());
       setGroupB(emptyGroup());
-
-      const [resA, resB] = await Promise.allSettled([
-        fetchGroup(ULVEN_TORG.id, OSL.id),
-        fetchGroup(ULVENKRYSSET.id, OSL.id),
-      ]);
-
-      setGroupA({
-        departures: resA.status === "fulfilled" ? resA.value : [],
-        loading:    false,
-        error:      resA.status === "rejected" ? String(resA.reason) : null,
-      });
-      setGroupB({
-        departures: resB.status === "fulfilled" ? resB.value : [],
-        loading:    false,
-        error:      resB.status === "rejected" ? String(resB.reason) : null,
-      });
     } else {
-      // Single fetch from OSL → Ulven Torg
       setGroupA(emptyGroup());
       setGroupB(null);
-      try {
-        const deps = await fetchGroup(OSL.id, ULVEN_TORG.id);
-        setGroupA({ departures: deps, loading: false, error: null });
-      } catch (e) {
-        setGroupA({ departures: [], loading: false, error: String(e) });
-      }
+    }
+    setTransit(emptyTransit());
+
+    const now = new Date().toISOString();
+
+    if (direction === "ulven-osl") {
+      const [resA, resB, resT] = await Promise.allSettled([
+        fetchGroup(ULVEN_TORG.id, OSL.id),
+        fetchGroup(ULVENKRYSSET.id, OSL.id),
+        fetchTransit("ulven-osl"),
+      ]);
+      setGroupA({ departures: resA.status === "fulfilled" ? resA.value : [], loading: false,
+        error: resA.status === "rejected" ? String(resA.reason) : null });
+      setGroupB({ departures: resB.status === "fulfilled" ? resB.value : [], loading: false,
+        error: resB.status === "rejected" ? String(resB.reason) : null });
+      setTransit({ journeys: resT.status === "fulfilled" ? resT.value : [], loading: false,
+        error: resT.status === "rejected" ? String(resT.reason) : null });
+    } else {
+      const [resA, resT] = await Promise.allSettled([
+        fetchGroup(OSL.id, ULVEN_TORG.id),
+        fetchTransit("osl-ulven"),
+      ]);
+      setGroupA({ departures: resA.status === "fulfilled" ? resA.value : [], loading: false,
+        error: resA.status === "rejected" ? String(resA.reason) : null });
+      setTransit({ journeys: resT.status === "fulfilled" ? resT.value : [], loading: false,
+        error: resT.status === "rejected" ? String(resT.reason) : null });
     }
 
+    void now; // suppress unused warning
     setFetchedAt(new Date().toISOString());
     setCountdown(REFRESH_INTERVAL);
   }, [direction]);
 
-  // Fetch on mount + direction change
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // Auto-refresh countdown
   useEffect(() => {
     const iv = setInterval(() => {
-      setCountdown((c) => {
-        if (c <= 1) { fetchAll(); return REFRESH_INTERVAL; }
-        return c - 1;
-      });
+      setCountdown((c) => { if (c <= 1) { fetchAll(); return REFRESH_INTERVAL; } return c - 1; });
     }, 1000);
     return () => clearInterval(iv);
   }, [fetchAll]);
 
-  // Tick every 30 s to keep countdown labels fresh
   const [, setTick] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setTick((n) => n + 1), 30000);
     return () => clearInterval(t);
   }, []);
 
-  const headerTitle =
-    direction === "ulven-osl"
-      ? "🚌 Avganger mot Oslo Lufthavn"
-      : `🚌 Avganger fra ${OSL.name}`;
+  const transitTitle = direction === "ulven-osl"
+    ? "🚇 T-bane (Økern) + 🚄 Flytoget"
+    : "🚄 Flytoget + 🚇 T-bane (Jernbanetorget)";
+
+  const busTitle = direction === "ulven-osl"
+    ? "🚌 Flybussen mot Oslo Lufthavn"
+    : `🚌 Flybussen fra ${OSL.name}`;
 
   return (
     <div className="card">
@@ -287,29 +324,23 @@ export default function Home() {
 
       <div className="card-header">
         <div className="card-header-left">
-          <h1>{headerTitle}</h1>
+          <h1>{busTitle}</h1>
         </div>
-        <button
-          className={`refresh-btn${isLoading ? " spinning" : ""}`}
-          onClick={fetchAll}
-          disabled={isLoading}
-          title="Oppdater"
-        >
+        <button className={`refresh-btn${isLoading ? " spinning" : ""}`}
+          onClick={fetchAll} disabled={isLoading} title="Oppdater">
           <RefreshIcon spinning={isLoading} />
           {isLoading ? "Laster…" : `${countdown}s`}
         </button>
       </div>
 
       <div className="departures">
-        {/* Ulven Torg group (or OSL group in reverse) */}
+        {/* ── Flybussen groups ── */}
         <StopGroup
           stopName={direction === "ulven-osl" ? ULVEN_TORG.name : OSL.name}
           departures={groupA.departures}
           loading={groupA.loading}
           error={groupA.error}
         />
-
-        {/* Ulvenkrysset group — only shown going toward OSL */}
         {groupB && (
           <StopGroup
             stopName={ULVENKRYSSET.name}
@@ -318,6 +349,32 @@ export default function Home() {
             error={groupB.error}
           />
         )}
+
+        {/* ── T-bane + Flytoget section ── */}
+        <div className="transit-section">
+          <div className="transit-section-header">
+            <span className="transit-section-title">{transitTitle}</span>
+          </div>
+
+          {transit.loading && transit.journeys.length === 0 && (
+            <div className="state-msg compact">
+              <span className="state-msg-icon">🚇</span> Henter…
+            </div>
+          )}
+          {transit.error && (
+            <div className="state-msg compact error">
+              <span className="state-msg-icon">⚠️</span> {transit.error}
+            </div>
+          )}
+          {!transit.loading && !transit.error && transit.journeys.length === 0 && (
+            <div className="state-msg compact">
+              <span className="state-msg-icon">🔍</span> Ingen reiser funnet
+            </div>
+          )}
+          {transit.journeys.map((j, i) => (
+            <TransitCard key={i} journey={j} />
+          ))}
+        </div>
       </div>
 
       <div className="card-footer">

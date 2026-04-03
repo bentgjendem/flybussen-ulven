@@ -392,6 +392,173 @@ body {
 .state-msg.compact .state-msg-icon { font-size: 1rem; }
 .state-msg.compact.error { color: #b91c1c; background: #fff5f5; border-color: #fecaca; }
 
+/* ── Transit section separator ───────────────────────────── */
+.transit-section {
+  border-top: 2px solid #e0e7f0;
+  margin-top: 0.25rem;
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.transit-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.transit-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #003087;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* ── Transit journey card ─────────────────────────────────── */
+.transit-card {
+  background: #ffffff;
+  border: 1px solid #e5eaf5;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.transit-card:hover { box-shadow: 0 3px 12px rgba(0,48,135,0.1); border-color: #c5d0ec; }
+
+/* top summary bar */
+.transit-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.2rem 0.7rem;
+  gap: 0.5rem;
+}
+
+.transit-time-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 55px;
+}
+
+.transit-time {
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: #1a1a2e;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+}
+
+.transit-time-label {
+  font-size: 0.65rem;
+  color: #9ca3af;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.transit-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+}
+
+.transit-duration {
+  font-size: 0.72rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.transit-arrow-line {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.transit-arrow-line hr {
+  flex: 1;
+  border: none;
+  border-top: 2px dashed #d1d8ec;
+}
+
+.transit-arrow-tip { color: #003087; font-size: 1rem; }
+
+/* legs breakdown */
+.transit-legs {
+  border-top: 1px solid #f0f4fb;
+  background: #f8faff;
+  padding: 0.65rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.transit-leg-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+.transit-leg-icon { font-size: 0.95rem; flex-shrink: 0; width: 1.3rem; text-align: center; }
+
+.transit-leg-line {
+  font-weight: 700;
+  color: #003087;
+  background: #eef3ff;
+  border: 1px solid #d0daf8;
+  border-radius: 5px;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+
+.transit-leg-times {
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.transit-leg-route {
+  color: #6b7280;
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transit-leg-delayed {
+  color: #b91c1c;
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.transit-transfer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  padding: 0.05rem 0;
+}
+
+/* bottom meta */
+.transit-meta {
+  padding: 0.5rem 1.2rem 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 /* ── Footer strip ─────────────────────────────────────────── */
 .card-footer {
   border-top: 1px solid #e8edf5;
