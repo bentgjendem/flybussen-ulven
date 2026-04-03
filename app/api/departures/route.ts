@@ -4,11 +4,11 @@ const ENTUR_API = "https://api.entur.io/journey-planner/v3/graphql";
 const ET_CLIENT_NAME = "flybussen-ulven-osl";
 
 const TRIP_QUERY = `
-query GetTrips($from: String!, $to: String!, $dateTime: DateTime!) {
+query GetTrips($from: String!, $to: String!, $dateTime: DateTime!, $num: Int!) {
   trip(
     from: { place: $from }
     to: { place: $to }
-    numTripPatterns: 12
+    numTripPatterns: $num
     modes: { transportModes: [{ transportMode: bus }] }
     dateTime: $dateTime
   ) {
@@ -60,6 +60,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const from = searchParams.get("from") ?? "NSR:StopPlace:5920";
   const to = searchParams.get("to") ?? "NSR:StopPlace:58211";
+  const num = Math.min(parseInt(searchParams.get("num") ?? "5", 10), 20);
   const dateTime = new Date().toISOString();
 
   try {
@@ -71,7 +72,7 @@ export async function GET(req: NextRequest) {
       },
       body: JSON.stringify({
         query: TRIP_QUERY,
-        variables: { from, to, dateTime },
+        variables: { from, to, dateTime, num },
       }),
       cache: "no-store",
     });

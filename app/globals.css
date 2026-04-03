@@ -332,6 +332,36 @@ body {
   font-style: normal;
 }
 
+/* ── Stop groups ──────────────────────────────────────────── */
+.stop-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.stop-group + .stop-group {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #e0e7f0;
+}
+
+.stop-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.1rem;
+}
+
+.stop-group-pin { font-size: 0.9rem; line-height: 1; }
+
+.stop-group-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #003087;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
 /* ── Empty / loading / error states ──────────────────────── */
 .state-msg {
   display: flex;
@@ -348,6 +378,19 @@ body {
 
 .state-msg .icon { font-size: 2.5rem; }
 .state-msg.error { color: #b91c1c; }
+
+/* compact variant used inside stop groups */
+.state-msg.compact {
+  flex-direction: row;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.82rem;
+  justify-content: flex-start;
+  background: #f8faff;
+  border-radius: 10px;
+  border: 1px solid #e8edf5;
+}
+.state-msg.compact .state-msg-icon { font-size: 1rem; }
+.state-msg.compact.error { color: #b91c1c; background: #fff5f5; border-color: #fecaca; }
 
 /* ── Footer strip ─────────────────────────────────────────── */
 .card-footer {
