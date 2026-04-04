@@ -673,6 +673,37 @@ body {
   color: #6b7280;
 }
 
+/* Arrived / landed status badge */
+.dep-status.arr-landed {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+/* Countdown text for landed flights */
+.dep-countdown.arr-landed-hint {
+  color: #0369a1;
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* Large arrival time label */
+.arr-time-osl {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  color: #6b7280 !important;
+  letter-spacing: 2px;
+}
+
+/* Section sub-labels ("Nettopp landet" / "Neste fra Bergen") */
+.arr-group-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #6b7280;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 0.25rem;
+}
+
 /* ── Footer strip ─────────────────────────────────────────── */
 .card-footer {
   border-top: 1px solid #e8edf5;
