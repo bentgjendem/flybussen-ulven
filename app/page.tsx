@@ -312,18 +312,26 @@ function ArrivalCard({ arrival }: { arrival: SasArrival }) {
   return (
     <div className={`flight-card${isCancelled ? " cancelled" : ""}`}>
       <div className="flight-times">
+        {/* Avgang Bergen */}
         <div>
-          {isDelayed && (
-            <div className="flight-time cancelled-time">{arrival.scheduledArrival}</div>
-          )}
-          <div className={`flight-time${isDelayed ? " actual" : ""}`}>
-            {arrival.actualArrival ?? arrival.scheduledArrival}
+          <div className="flight-time" style={{ fontSize: "1.1rem", color: "#6b7280" }}>
+            {arrival.scheduledDepartureBgo}
           </div>
+          <div className="dep-time-label">BGO</div>
         </div>
         <div className="flight-route">
           <hr />✈<hr />
         </div>
-        <div className="flight-time arr-time-osl">OSL</div>
+        {/* Ankomst Oslo */}
+        <div>
+          {isDelayed && (
+            <div className="flight-time cancelled-time">{arrival.scheduledArrivalOsl}</div>
+          )}
+          <div className={`flight-time${isDelayed ? " actual" : ""}`}>
+            {arrival.actualArrivalOsl ?? arrival.scheduledArrivalOsl}
+          </div>
+          <div className="dep-time-label">OSL</div>
+        </div>
       </div>
 
       <div className="flight-meta">
