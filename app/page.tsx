@@ -89,10 +89,10 @@ function BusRouteHeader({ direction, onSwap }: { direction: Direction; onSwap: (
           <line x1="0" y1="32" x2="260" y2="32"
             stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" strokeDasharray="12 8" />
           {/* Bus rolling along the road */}
-          <text fontSize="18" textAnchor="middle" fill="white"
+          <text fontSize="24" textAnchor="middle" fill="white"
             style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,80,0.4))" }}>
             🚌
-            <animateMotion dur="5s" repeatCount="indefinite" path="M 0 18 L 244 18" />
+            <animateMotion dur="5s" repeatCount="indefinite" path="M 0 24 L 244 24" />
           </text>
         </svg>
         <div className="route-label">Flybussen</div>
