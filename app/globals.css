@@ -558,6 +558,114 @@ body {
   gap: 0.5rem;
 }
 
+/* ── Flight section ───────────────────────────────────────── */
+.flight-section {
+  border-top: 2px solid #e0e7f0;
+  margin-top: 0.25rem;
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.flight-section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.flight-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #003087;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.flight-section-subtitle {
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+
+/* ── Flight card ──────────────────────────────────────────── */
+.flight-card {
+  background: #fff;
+  border: 1px solid #e5eaf5;
+  border-radius: 14px;
+  padding: 0.9rem 1.2rem 0.75rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.flight-card:hover { box-shadow: 0 3px 12px rgba(0,48,135,0.1); border-color: #c5d0ec; }
+.flight-card.cancelled { opacity: 0.5; }
+
+.flight-times {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.flight-time {
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: #1a1a2e;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+}
+
+.flight-time.cancelled-time {
+  text-decoration: line-through;
+  opacity: 0.5;
+  font-size: 1.1rem;
+}
+
+.flight-time.actual {
+  color: #b91c1c;
+}
+
+.flight-route {
+  font-size: 0.8rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 1;
+  padding: 0 0.3rem;
+}
+
+.flight-route hr {
+  flex: 1;
+  border: none;
+  border-top: 1px dashed #d1d8ec;
+}
+
+.flight-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.flight-number {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #003087;
+  background: #eef3ff;
+  border: 1px solid #d0daf8;
+  border-radius: 6px;
+  padding: 0.2rem 0.55rem;
+}
+
+.flight-gate {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
 /* ── Footer strip ─────────────────────────────────────────── */
 .card-footer {
   border-top: 1px solid #e8edf5;

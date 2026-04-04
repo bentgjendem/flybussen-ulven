@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Departure } from "./api/departures/route";
 import type { MetroFlyJourney } from "./api/metro-fly/route";
+import type { SasFlight } from "./api/flights/route";
 
 // ── Stop definitions ─────────────────────────────────────────
 const ULVEN_TORG   = { id: "NSR:StopPlace:5920",  code: "ULV", name: "Ulven Torg",   icon: "🏙️" };
@@ -46,6 +47,27 @@ async function fetchTransit(direction: Direction): Promise<MetroFlyJourney[]> {
   const data = await res.json();
   if (data.error) throw new Error(data.error);
   return (data.journeys ?? []) as MetroFlyJourney[];
+}
+
+async function fetchFlights(oslArrivalIso: string): Promise<{ flights: SasFlight[]; minDeparture: string; oslArrival: string }> {
+  const res = await fetch(`/api/flights?after=${encodeURIComponent(oslArrivalIso)}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+/** Returns the ISO string of the earliest OSL arrival across all shown transport options. */
+function earliestOslArrival(
+  groupA: GroupState,
+  groupB: GroupState | null,
+  transit: TransitState,
+): string | null {
+  const candidates: number[] = [];
+  if (groupA.departures[0]) candidates.push(new Date(groupA.departures[0].expectedArrival).getTime());
+  if (groupB?.departures[0]) candidates.push(new Date(groupB.departures[0].expectedArrival).getTime());
+  if (transit.journeys[0]) candidates.push(new Date(transit.journeys[0].expectedArrival).getTime());
+  if (!candidates.length) return null;
+  return new Date(Math.min(...candidates)).toISOString();
 }
 
 // ── Sub-components ────────────────────────────────────────────
@@ -224,6 +246,42 @@ function TransitCard({ journey }: { journey: MetroFlyJourney }) {
   );
 }
 
+function FlightCard({ flight }: { flight: SasFlight }) {
+  const isDelayed   = flight.delayed && !flight.cancelled;
+  const isCancelled = flight.cancelled;
+  return (
+    <div className={`flight-card${isCancelled ? " cancelled" : ""}`}>
+      <div className="flight-times">
+        {/* Departure */}
+        <div>
+          {isDelayed && <div className="flight-time cancelled-time">{flight.scheduledDeparture}</div>}
+          <div className={`flight-time${isDelayed ? " actual" : ""}`}>
+            {flight.actualDeparture ?? flight.scheduledDeparture}
+          </div>
+        </div>
+        <div className="flight-route">
+          <hr />✈<hr />
+        </div>
+        {/* Arrival BGO */}
+        <div className="flight-time">{flight.scheduledArrivalBgo}</div>
+      </div>
+
+      <div className="flight-meta">
+        <span className="flight-number">{flight.flightNumber}</span>
+        <span style={{ fontSize: "0.72rem", color: "#6b7280" }}>OSL → BGO</span>
+        {flight.gate && <span className="flight-gate">Gate {flight.gate}</span>}
+        {isCancelled ? (
+          <span className="dep-status delayed">Kansellert</span>
+        ) : isDelayed ? (
+          <span className="dep-status delayed">+{flight.delayMinutes} min</span>
+        ) : (
+          <span className="dep-status on-time">I rute</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function RefreshIcon({ spinning }: { spinning: boolean }) {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -238,9 +296,11 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
 // ── State types ───────────────────────────────────────────────
 type GroupState   = { departures: Departure[];      loading: boolean; error: string | null };
 type TransitState = { journeys: MetroFlyJourney[];  loading: boolean; error: string | null };
+type FlightsState = { flights: SasFlight[]; minDeparture: string | null; oslArrival: string | null; loading: boolean; error: string | null };
 
 const emptyGroup   = (): GroupState   => ({ departures: [], loading: true,  error: null });
 const emptyTransit = (): TransitState => ({ journeys:   [], loading: true,  error: null });
+const emptyFlights = (): FlightsState => ({ flights: [],   minDeparture: null, oslArrival: null, loading: true, error: null });
 
 // ── Main page ─────────────────────────────────────────────────
 export default function Home() {
@@ -248,6 +308,7 @@ export default function Home() {
   const [groupA,    setGroupA]    = useState<GroupState>(emptyGroup());
   const [groupB,    setGroupB]    = useState<GroupState | null>(null);
   const [transit,   setTransit]   = useState<TransitState>(emptyTransit());
+  const [flights,   setFlights]   = useState<FlightsState>(emptyFlights());
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
 
@@ -266,18 +327,31 @@ export default function Home() {
     const now = new Date().toISOString();
 
     if (direction === "ulven-osl") {
+      setFlights(emptyFlights());
       const [resA, resB, resT] = await Promise.allSettled([
         fetchGroup(ULVEN_TORG.id, OSL.id),
         fetchGroup(ULVENKRYSSET.id, OSL.id),
         fetchTransit("ulven-osl"),
       ]);
-      setGroupA({ departures: resA.status === "fulfilled" ? resA.value : [], loading: false,
-        error: resA.status === "rejected" ? String(resA.reason) : null });
-      setGroupB({ departures: resB.status === "fulfilled" ? resB.value : [], loading: false,
-        error: resB.status === "rejected" ? String(resB.reason) : null });
-      setTransit({ journeys: resT.status === "fulfilled" ? resT.value : [], loading: false,
-        error: resT.status === "rejected" ? String(resT.reason) : null });
+      const newA: GroupState = { departures: resA.status === "fulfilled" ? resA.value : [], loading: false,
+        error: resA.status === "rejected" ? String(resA.reason) : null };
+      const newB: GroupState = { departures: resB.status === "fulfilled" ? resB.value : [], loading: false,
+        error: resB.status === "rejected" ? String(resB.reason) : null };
+      const newT: TransitState = { journeys: resT.status === "fulfilled" ? resT.value : [], loading: false,
+        error: resT.status === "rejected" ? String(resT.reason) : null };
+      setGroupA(newA); setGroupB(newB); setTransit(newT);
+
+      // Fetch SAS flights based on earliest OSL arrival
+      const earliest = earliestOslArrival(newA, newB, newT);
+      if (earliest) {
+        fetchFlights(earliest)
+          .then(d => setFlights({ flights: d.flights, minDeparture: d.minDeparture, oslArrival: d.oslArrival, loading: false, error: null }))
+          .catch(e => setFlights({ flights: [], minDeparture: null, oslArrival: null, loading: false, error: String(e) }));
+      } else {
+        setFlights({ flights: [], minDeparture: null, oslArrival: null, loading: false, error: null });
+      }
     } else {
+      setFlights({ ...emptyFlights(), loading: false }); // no flights section in return direction
       const [resA, resT] = await Promise.allSettled([
         fetchGroup(OSL.id, ULVEN_TORG.id),
         fetchTransit("osl-ulven"),
@@ -288,7 +362,7 @@ export default function Home() {
         error: resT.status === "rejected" ? String(resT.reason) : null });
     }
 
-    void now; // suppress unused warning
+    void now;
     setFetchedAt(new Date().toISOString());
     setCountdown(REFRESH_INTERVAL);
   }, [direction]);
@@ -376,6 +450,30 @@ export default function Home() {
             <TransitCard key={i} journey={j} />
           ))}
         </div>
+
+        {/* ── SAS Oslo → Bergen flights ── */}
+        {direction === "ulven-osl" && (
+          <div className="flight-section">
+            <div className="flight-section-header">
+              <span className="flight-section-title">✈ SAS Oslo → Bergen</span>
+              {flights.oslArrival && flights.minDeparture && (
+                <span className="flight-section-subtitle">
+                  tidligst OSL {flights.oslArrival} · viser avgang etter {flights.minDeparture}
+                </span>
+              )}
+            </div>
+            {flights.loading && (
+              <div className="state-msg compact"><span className="state-msg-icon">✈</span> Henter flydata…</div>
+            )}
+            {flights.error && (
+              <div className="state-msg compact error"><span className="state-msg-icon">⚠️</span> {flights.error}</div>
+            )}
+            {!flights.loading && !flights.error && flights.flights.length === 0 && (
+              <div className="state-msg compact"><span className="state-msg-icon">🔍</span> Ingen SAS-avganger funnet</div>
+            )}
+            {flights.flights.map((f, i) => <FlightCard key={i} flight={f} />)}
+          </div>
+        )}
       </div>
 
       <div className="card-footer">
