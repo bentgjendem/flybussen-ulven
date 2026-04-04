@@ -95,8 +95,9 @@ function BusRouteHeader({ direction, onSwap }: { direction: Direction; onSwap: (
             <animateMotion dur="5s" repeatCount="indefinite" path="M 0 24 L 244 24" />
           </text>
         </svg>
-        <div className="route-label">Flybussen</div>
-        <div className="swap-hint">↕ klikk for å bytte retning</div>
+        <button className="swap-btn" onClick={e => { e.stopPropagation(); onSwap(); }} title="Bytt retning">
+          ⇅ Bytt retning
+        </button>
       </div>
       <div className="stop">
         <div className="stop-code">{to.code}</div>

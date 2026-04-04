@@ -94,19 +94,26 @@ body {
   overflow: visible;
 }
 
-.route-label {
-  font-size: 0.67rem;
-  color: rgba(255,255,255,0.45);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+.swap-btn {
+  margin-top: 4px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  background: rgba(255,255,255,0.15);
+  border: 1.5px solid rgba(255,255,255,0.5);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  white-space: nowrap;
 }
-
-.swap-hint {
-  font-size: 0.6rem;
-  color: rgba(255,255,255,0.35);
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  margin-top: 2px;
+.swap-btn:hover {
+  background: rgba(255,255,255,0.28);
+  border-color: rgba(255,255,255,0.85);
+}
+.swap-btn:active {
+  transform: scale(0.95);
 }
 
 /* ── Sub-header strip ─────────────────────────────────────── */
